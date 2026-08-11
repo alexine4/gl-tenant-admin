@@ -37,7 +37,6 @@ yarn-error.log*
 .vercel
 
 # user-uploaded content (dev-local storage)
-/public/uploads
 /storage
 
 # typescript

@@ -8,11 +8,16 @@ import {
   type TenantDocument,
   type UploadResult,
 } from "@/lib/documents-client";
+import { FileField } from "@/components/ui/FileField";
+import { Alert } from "@/components/ui/Alert";
+import { Muted } from "@/components/ui/Muted";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { DataTable } from "@/components/ui/DataTable";
 
-const STATUS_STYLES: Record<TenantDocument["status"], string> = {
-  Pending: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  Ingested: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  Failed: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+const STATUS_TONE: Record<TenantDocument["status"], BadgeTone> = {
+  Pending: "warning",
+  Ingested: "positive",
+  Failed: "negative",
 };
 
 export default function DocumentsPage() {
@@ -96,19 +101,16 @@ export default function DocumentsPage() {
       </p>
 
       <div className="mt-6">
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          onChange={handleFilesSelected}
-          disabled={uploading}
-          className="block text-sm text-zinc-700 dark:text-zinc-300"
-        />
-        {uploading && <p className="mt-1 text-xs text-zinc-500">Uploading…</p>}
+        <FileField ref={fileInputRef} multiple onChange={handleFilesSelected} disabled={uploading} />
+        {uploading && (
+          <Muted size="xs" className="mt-1">
+            Uploading…
+          </Muted>
+        )}
         {uploadError && (
-          <p className="mt-2 rounded-md bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-            {uploadError}
-          </p>
+          <div className="mt-2">
+            <Alert variant="error">{uploadError}</Alert>
+          </div>
         )}
         {uploadResults && (
           <ul className="mt-2 flex flex-col gap-1 text-sm">
@@ -124,48 +126,41 @@ export default function DocumentsPage() {
 
       <hr className="my-6 border-black/10 dark:border-white/10" />
 
-      {loadError && (
-        <p className="rounded-md bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-          {loadError}
-        </p>
-      )}
+      {loadError && <Alert variant="error">{loadError}</Alert>}
 
-      {!documents && !loadError && <p className="text-sm text-zinc-500">Loading…</p>}
+      {!documents && !loadError && <Muted>Loading…</Muted>}
 
-      {documents && documents.length === 0 && (
-        <p className="text-sm text-zinc-500">No documents uploaded yet.</p>
-      )}
+      {documents && documents.length === 0 && <Muted>No documents uploaded yet.</Muted>}
 
       {documents && documents.length > 0 && (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500 dark:text-zinc-400">
-              <th className="py-2 pr-4 font-medium">File</th>
-              <th className="py-2 pr-4 font-medium">Size</th>
-              <th className="py-2 pr-4 font-medium">Uploaded</th>
-              <th className="py-2 pr-4 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {documents.map((doc) => (
-              <tr key={doc.document_id} className="border-b border-black/5 dark:border-white/5">
-                <td className="py-2 pr-4 text-zinc-900 dark:text-zinc-50">{doc.file_name}</td>
-                <td className="py-2 pr-4 text-zinc-600 dark:text-zinc-400">{formatBytes(doc.size_bytes)}</td>
-                <td className="py-2 pr-4 text-zinc-600 dark:text-zinc-400">
-                  {new Date(doc.created_at).toLocaleString()}
-                </td>
-                <td className="py-2 pr-4">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[doc.status]}`}>
-                    {doc.status}
-                  </span>
+        <DataTable
+          rows={documents}
+          rowKey={(doc) => doc.document_id}
+          columns={[
+            { header: "File", cell: (doc) => doc.file_name, className: "text-zinc-900 dark:text-zinc-50" },
+            {
+              header: "Size",
+              cell: (doc) => formatBytes(doc.size_bytes),
+              className: "text-zinc-600 dark:text-zinc-400",
+            },
+            {
+              header: "Uploaded",
+              cell: (doc) => new Date(doc.created_at).toLocaleString(),
+              className: "text-zinc-600 dark:text-zinc-400",
+            },
+            {
+              header: "Status",
+              cell: (doc) => (
+                <>
+                  <Badge tone={STATUS_TONE[doc.status]}>{doc.status}</Badge>
                   {doc.status === "Failed" && doc.failure_reason && (
                     <p className="mt-1 text-xs text-red-600 dark:text-red-400">{doc.failure_reason}</p>
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+          ]}
+        />
       )}
     </div>
   );

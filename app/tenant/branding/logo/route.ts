@@ -6,10 +6,14 @@ import { withAuth } from "@/lib/auth";
 import { ALLOWED_LOGO_MIME_TYPES, serializeBranding, validateLogoFile } from "@/lib/branding";
 import { prisma } from "@/lib/prisma";
 
-// Logos are tenant-branding assets meant to be shown across that tenant's
-// experience, so -- unlike knowledge-base documents -- they're stored under
-// the public/ tree and served as plain static files, no auth required to view.
-const UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads", "branding");
+// Deliberately not the LOGO_STORAGE_ROOT exported from lib/branding.ts:
+// Turbopack's build-time file-tracing analysis only recognizes a
+// `path.join(process.cwd(), ...)` root as statically scoped when it's
+// declared in the same file as the fs call. Importing it from another
+// module falls back to tracing (and bundling) the whole project for this
+// route -- confirmed by removing/re-adding the import and diffing the
+// `next build` warnings. Keep this literal in sync with lib/branding.ts.
+const LOGO_STORAGE_ROOT = path.join(process.cwd(), "storage", "branding");
 
 export const POST = withAuth(async (request, _ctx, auth) => {
   const formData = await request.formData().catch(() => null);
@@ -28,10 +32,13 @@ export const POST = withAuth(async (request, _ctx, auth) => {
 
   const extension = ALLOWED_LOGO_MIME_TYPES[file.type];
   const fileName = `${randomUUID()}.${extension}`;
-  const tenantDir = path.join(UPLOAD_ROOT, auth.tenant_id);
+  const tenantDir = path.join(LOGO_STORAGE_ROOT, auth.tenant_id);
   await mkdir(tenantDir, { recursive: true });
-  await writeFile(path.join(tenantDir, fileName), Buffer.from(await file.arrayBuffer()));
+  const filePath = path.join(tenantDir, fileName);
+  await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
 
+  // Served by app/uploads/branding/[tenantId]/[filename]/route.ts, not by
+  // Next's static public/ handling.
   const logoUrl = `/uploads/branding/${auth.tenant_id}/${fileName}`;
 
   const updated = await prisma.tenantBranding.upsert({
@@ -43,7 +50,7 @@ export const POST = withAuth(async (request, _ctx, auth) => {
   // Best-effort cleanup of the previous file -- a failure here shouldn't
   // fail the upload, it just leaves an orphaned file on disk.
   if (existing?.logoUrl && existing.logoUrl !== logoUrl) {
-    const previousPath = path.join(process.cwd(), "public", existing.logoUrl.replace(/^\//, ""));
+    const previousPath = path.join(LOGO_STORAGE_ROOT, auth.tenant_id, path.basename(existing.logoUrl));
     await unlink(previousPath).catch(() => {});
   }
 

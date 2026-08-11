@@ -1,3 +1,4 @@
+import path from "path";
 import type { TenantBranding } from "@prisma/client";
 
 // Raster formats only. SVG is deliberately excluded: an uploaded .svg is
@@ -12,7 +13,19 @@ export const ALLOWED_LOGO_MIME_TYPES: Record<string, string> = {
   "image/gif": "gif",
 };
 
+export const EXTENSION_TO_MIME_TYPE: Record<string, string> = Object.fromEntries(
+  Object.entries(ALLOWED_LOGO_MIME_TYPES).map(([mime, ext]) => [ext, mime])
+);
+
 export const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
+
+// Logos are public-facing branding assets (shown across the tenant's own
+// experience) but still stored outside public/: a production `next start`
+// only serves files that existed in public/ at build time, so anything
+// written at runtime -- like an upload -- would 404 there. A route handler
+// under app/uploads/branding/ serves this directory live instead, in both
+// dev and production.
+export const LOGO_STORAGE_ROOT = path.join(process.cwd(), "storage", "branding");
 
 export const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 

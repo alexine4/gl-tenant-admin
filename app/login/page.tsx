@@ -3,6 +3,10 @@
 import { useEffect, useState, type SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-client";
+import { TextField } from "@/components/ui/TextField";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
   const { login, status } = useAuth();
@@ -49,55 +53,33 @@ export default function LoginPage() {
         </p>
 
         <div className="mt-6 flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Email
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 outline-none focus:border-zinc-500"
-              placeholder="you@company.com"
-            />
-          </label>
+          <TextField
+            label="Email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
+          />
 
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Password
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 outline-none focus:border-zinc-500"
-              placeholder="••••••••"
-            />
-          </label>
+          <TextField
+            label="Password"
+            type="password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+          />
 
-          <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700"
-            />
-            Remember me
-          </label>
+          <Checkbox label="Remember me" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
 
-          {error && (
-            <p className="rounded-md bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-              {error}
-            </p>
-          )}
+          {error && <Alert variant="error">{error}</Alert>}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-2 rounded-full bg-zinc-900 dark:bg-zinc-50 px-4 py-2 text-sm font-medium text-white dark:text-zinc-900 transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
+          <Button type="submit" disabled={submitting} className="mt-2">
             {submitting ? "Signing in…" : "Sign in"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

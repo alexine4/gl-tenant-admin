@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useAuth } from "@/lib/auth-client";
 import { readJsonOrThrow, type TenantBranding } from "@/lib/branding-client";
+import { FileField } from "@/components/ui/FileField";
+import { ColorSwatchField } from "@/components/ui/ColorSwatchField";
+import { Alert } from "@/components/ui/Alert";
+import { Muted } from "@/components/ui/Muted";
+import { Button } from "@/components/ui/Button";
 
 const COLOR_FIELDS = [
   { key: "primary_color", label: "Primary" },
@@ -98,15 +103,11 @@ export default function BrandingPage() {
   }
 
   if (loadError) {
-    return (
-      <p className="rounded-md bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-        {loadError}
-      </p>
-    );
+    return <Alert variant="error">{loadError}</Alert>;
   }
 
   if (!branding) {
-    return <p className="text-sm text-zinc-500">Loading…</p>;
+    return <Muted>Loading…</Muted>;
   }
 
   const displayedLogo = previewUrl ?? branding.logo_url;
@@ -130,20 +131,26 @@ export default function BrandingPage() {
             )}
           </div>
           <div>
-            <input
+            <FileField
               ref={fileInputRef}
-              type="file"
               accept="image/png,image/jpeg,image/webp,image/gif"
               onChange={handleFileSelected}
               disabled={uploading}
-              className="block text-sm text-zinc-700 dark:text-zinc-300"
             />
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">PNG, JPEG, WebP or GIF, up to 2 MB.</p>
-            {uploading && <p className="mt-1 text-xs text-zinc-500">Uploading…</p>}
+            <Muted size="xs" className="mt-1">
+              PNG, JPEG, WebP or GIF, up to 2 MB.
+            </Muted>
+            {uploading && (
+              <Muted size="xs" className="mt-1">
+                Uploading…
+              </Muted>
+            )}
             {uploadError && (
-              <p className="mt-1 rounded-md bg-red-50 dark:bg-red-950 px-2 py-1 text-xs text-red-700 dark:text-red-300">
-                {uploadError}
-              </p>
+              <div className="mt-1">
+                <Alert variant="error" size="sm">
+                  {uploadError}
+                </Alert>
+              </div>
             )}
           </div>
         </div>
@@ -155,23 +162,12 @@ export default function BrandingPage() {
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Colour scheme</h2>
         <div className="mt-3 flex flex-wrap gap-6">
           {COLOR_FIELDS.map(({ key, label }) => (
-            <label key={key} className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              {label}
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={colors[key]}
-                  onChange={(e) => setColors((c) => ({ ...c, [key]: e.target.value }))}
-                  className="h-9 w-9 cursor-pointer rounded border border-zinc-300 dark:border-zinc-700 bg-transparent p-0"
-                />
-                <input
-                  type="text"
-                  value={colors[key]}
-                  onChange={(e) => setColors((c) => ({ ...c, [key]: e.target.value }))}
-                  className="w-24 rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-2 py-1 text-xs font-mono outline-none focus:border-zinc-500"
-                />
-              </div>
-            </label>
+            <ColorSwatchField
+              key={key}
+              label={label}
+              value={colors[key]}
+              onChange={(value) => setColors((c) => ({ ...c, [key]: value }))}
+            />
           ))}
         </div>
 
@@ -194,19 +190,19 @@ export default function BrandingPage() {
         </div>
 
         {colorsError && (
-          <p className="mt-3 rounded-md bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-            {colorsError}
-          </p>
+          <div className="mt-3">
+            <Alert variant="error">{colorsError}</Alert>
+          </div>
         )}
-        {colorsSaved && <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400">Saved.</p>}
+        {colorsSaved && (
+          <div className="mt-3">
+            <Alert variant="success">Saved.</Alert>
+          </div>
+        )}
 
-        <button
-          onClick={handleSaveColors}
-          disabled={savingColors}
-          className="mt-4 rounded-full bg-zinc-900 dark:bg-zinc-50 px-4 py-2 text-sm font-medium text-white dark:text-zinc-900 hover:opacity-90 disabled:opacity-50"
-        >
+        <Button onClick={handleSaveColors} disabled={savingColors} className="mt-4">
           {savingColors ? "Saving…" : "Save colour scheme"}
-        </button>
+        </Button>
       </section>
     </div>
   );

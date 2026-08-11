@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { Button } from "@/components/ui/Button";
 
-export interface TableColumn<T> {
-  header: string;
-  cell: (row: T) => ReactNode;
-}
+export type TableColumn<T> = DataTableColumn<T>;
 
 /**
  * Every chart needs a WCAG-clean twin: a plain table holding the same
@@ -20,33 +19,12 @@ export function TableToggle<T>({ rows, columns, rowKey }: {
 
   return (
     <div>
-      <button onClick={() => setShow((v) => !v)} className="mt-2 text-xs text-zinc-500 hover:underline">
+      <Button variant="link" size="sm" className="mt-2" onClick={() => setShow((v) => !v)}>
         {show ? "Hide" : "View"} as table
-      </button>
+      </Button>
       {show && (
         <div className="mt-2 max-h-48 overflow-auto">
-          <table className="w-full border-collapse text-xs">
-            <thead>
-              <tr className="text-left text-zinc-500">
-                {columns.map((c) => (
-                  <th key={c.header} className="py-1 pr-4">
-                    {c.header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, i) => (
-                <tr key={rowKey(row, i)} className="border-t border-black/5 dark:border-white/5">
-                  {columns.map((c) => (
-                    <td key={c.header} className="py-1 pr-4 tabular-nums">
-                      {c.cell(row)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable rows={rows} columns={columns} rowKey={rowKey} density="compact" />
         </div>
       )}
     </div>

@@ -9,6 +9,12 @@ import { HBarChart } from "@/components/charts/HBarChart";
 import { SplitBar } from "@/components/charts/SplitBar";
 import { HeatmapRow } from "@/components/charts/HeatmapRow";
 import { TableToggle } from "@/components/charts/TableToggle";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
+import { Alert } from "@/components/ui/Alert";
+import { Muted } from "@/components/ui/Muted";
+import { DataTable } from "@/components/ui/DataTable";
 
 const LAYER_COLORS: Record<string, string> = {
   KnowledgeBase: "var(--viz-series-1)",
@@ -36,15 +42,6 @@ const PRESETS = [
   { label: "Last 30 days", from: () => isoDaysAgo(29), to: () => isoDaysAgo(0) },
   { label: "Last 90 days", from: () => isoDaysAgo(89), to: () => isoDaysAgo(0) },
 ];
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-lg border border-black/10 dark:border-white/10 p-4">
-      <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">{title}</h2>
-      {children}
-    </section>
-  );
-}
 
 export default function AnalyticsPage() {
   const { authFetch } = useAuth();
@@ -108,59 +105,44 @@ export default function AnalyticsPage() {
           section below scopes to the same from/to so numbers always agree. */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {PRESETS.map((p) => (
-          <button
+          <Button
             key={p.label}
+            variant="secondary"
+            size="sm"
             onClick={() => {
               setFrom(p.from());
               setTo(p.to());
             }}
-            className="rounded-full border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             {p.label}
-          </button>
+          </Button>
         ))}
         <span className="mx-1 h-4 w-px bg-black/10 dark:bg-white/10" />
-        <input
-          type="date"
-          value={from}
-          max={to}
-          onChange={(e) => setFrom(e.target.value)}
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-2 py-1 text-xs"
-        />
+        <TextField type="date" size="sm" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
         <span className="text-xs text-zinc-500">to</span>
-        <input
-          type="date"
-          value={to}
-          min={from}
-          onChange={(e) => setTo(e.target.value)}
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-2 py-1 text-xs"
-        />
+        <TextField type="date" size="sm" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
 
         <span className="ml-auto flex gap-2">
-          <button
-            onClick={() => handleExport("csv")}
-            disabled={exporting !== null}
-            className="rounded-full bg-zinc-900 dark:bg-zinc-50 px-3 py-1.5 text-xs font-medium text-white dark:text-zinc-900 hover:opacity-90 disabled:opacity-50"
-          >
+          <Button size="sm" onClick={() => handleExport("csv")} disabled={exporting !== null}>
             {exporting === "csv" ? "Exporting…" : "Export CSV"}
-          </button>
-          <button
-            onClick={() => handleExport("json")}
-            disabled={exporting !== null}
-            className="rounded-full border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
-          >
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => handleExport("json")} disabled={exporting !== null}>
             {exporting === "json" ? "Exporting…" : "Export JSON"}
-          </button>
+          </Button>
         </span>
       </div>
 
       {error && (
-        <p className="mt-4 rounded-md bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-          {error}
-        </p>
+        <div className="mt-4">
+          <Alert variant="error">{error}</Alert>
+        </div>
       )}
 
-      {!data && !error && <p className="mt-6 text-sm text-zinc-500">Loading…</p>}
+      {!data && !error && (
+        <div className="mt-6">
+          <Muted>Loading…</Muted>
+        </div>
+      )}
 
       {data && (
         <div className="mt-6 flex flex-col gap-6" style={{ opacity: exporting ? 0.7 : 1 }}>
@@ -176,7 +158,7 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          <Section title="Conversations & questions by period">
+          <Card title="Conversations & questions by period">
             <LineChart
               categories={data.conversations_and_questions_by_period.map((d) => d.date)}
               series={[
@@ -201,9 +183,9 @@ export default function AnalyticsPage() {
                 { header: "Questions", cell: (d) => d.questions },
               ]}
             />
-          </Section>
+          </Card>
 
-          <Section title="Drop-off rate over time">
+          <Card title="Drop-off rate over time">
             <LineChart
               categories={data.drop_off.by_period.map((d) => d.date)}
               series={[
@@ -222,10 +204,10 @@ export default function AnalyticsPage() {
                 { header: "Drop-off rate", cell: (d) => `${(d.rate * 100).toFixed(1)}%` },
               ]}
             />
-          </Section>
+          </Card>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <Section title="Conversion funnel">
+            <Card title="Conversion funnel">
               <HBarChart
                 data={data.conversion_funnel.map((f, i) => ({
                   label: f.stage,
@@ -233,9 +215,9 @@ export default function AnalyticsPage() {
                   color: FUNNEL_COLORS[i % FUNNEL_COLORS.length],
                 }))}
               />
-            </Section>
+            </Card>
 
-            <Section title="Which layer answered">
+            <Card title="Which layer answered">
               <HBarChart
                 data={data.answered_by_layer.map((l) => ({
                   label: l.layer,
@@ -243,42 +225,39 @@ export default function AnalyticsPage() {
                   color: LAYER_COLORS[l.layer],
                 }))}
               />
-            </Section>
+            </Card>
 
-            <Section title="Topic engagement">
+            <Card title="Topic engagement">
               <HBarChart data={data.topic_engagement.map((t) => ({ label: t.topic, value: t.engagement_count }))} />
-            </Section>
+            </Card>
 
-            <Section title="Conversations by day of week">
+            <Card title="Conversations by day of week">
               <HBarChart data={dowData} />
-            </Section>
+            </Card>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <Section title="Voice / text split">
+            <Card title="Voice / text split">
               <SplitBar
                 segments={[
                   { label: "Voice", value: data.voice_text_split.voice, color: "var(--viz-series-1)" },
                   { label: "Text", value: data.voice_text_split.text, color: "var(--viz-series-2)" },
                 ]}
               />
-            </Section>
+            </Card>
 
-            <Section title="New / returning visitors">
+            <Card title="New / returning visitors">
               <SplitBar
                 segments={[
                   { label: "New", value: data.visitor_split.new, color: "var(--viz-series-1)" },
                   { label: "Returning", value: data.visitor_split.returning, color: "var(--viz-series-2)" },
                 ]}
               />
-            </Section>
+            </Card>
           </div>
 
-          <Section title="Conversations by time of day">
-            <HeatmapRow
-              data={data.time_of_day.map((h) => h.count)}
-              labelFor={(i) => `${i}:00`}
-            />
+          <Card title="Conversations by time of day">
+            <HeatmapRow data={data.time_of_day.map((h) => h.count)} labelFor={(i) => `${i}:00`} />
             <TableToggle
               rows={data.time_of_day}
               rowKey={(h) => String(h.hour)}
@@ -287,28 +266,28 @@ export default function AnalyticsPage() {
                 { header: "Conversations", cell: (h) => h.count },
               ]}
             />
-          </Section>
+          </Card>
 
-          <Section title="Top questions by topic">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-black/10 dark:border-white/10 text-left text-zinc-500 dark:text-zinc-400">
-                  <th className="py-2 pr-4 font-medium">Topic</th>
-                  <th className="py-2 pr-4 font-medium">Top question</th>
-                  <th className="py-2 pr-4 font-medium">Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.top_questions_by_topic.map((row) => (
-                  <tr key={row.topic} className="border-b border-black/5 dark:border-white/5">
-                    <td className="py-2 pr-4 text-zinc-900 dark:text-zinc-50">{row.topic}</td>
-                    <td className="py-2 pr-4 text-zinc-600 dark:text-zinc-400">{row.question}</td>
-                    <td className="py-2 pr-4 tabular-nums text-zinc-900 dark:text-zinc-50">{row.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Section>
+          <Card title="Top questions by topic">
+            <DataTable
+              rows={data.top_questions_by_topic}
+              rowKey={(row) => row.topic}
+              hoverable={false}
+              columns={[
+                { header: "Topic", cell: (row) => row.topic, className: "text-zinc-900 dark:text-zinc-50" },
+                {
+                  header: "Top question",
+                  cell: (row) => row.question,
+                  className: "text-zinc-600 dark:text-zinc-400",
+                },
+                {
+                  header: "Count",
+                  cell: (row) => row.count,
+                  className: "tabular-nums text-zinc-900 dark:text-zinc-50",
+                },
+              ]}
+            />
+          </Card>
         </div>
       )}
     </div>

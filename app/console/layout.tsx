@@ -4,6 +4,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth, type MembershipRole } from "@/lib/auth-client";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Muted } from "@/components/ui/Muted";
 
 const NAV_ITEMS: { href: string; label: string; roles?: MembershipRole[] }[] = [
   { href: "/console", label: "Overview" },
@@ -25,8 +28,8 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
 
   if (status === "loading") {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-zinc-500">
-        Loading session…
+      <div className="flex flex-1 items-center justify-center">
+        <Muted>Loading session…</Muted>
       </div>
     );
   }
@@ -44,8 +47,8 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
         <div className="mb-6">
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{user.display_name}</p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">{user.email}</p>
-          <span className="mt-1 inline-block rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-300">
-            {user.role}
+          <span className="mt-1 inline-block">
+            <Badge tone="neutral">{user.role}</Badge>
           </span>
         </div>
 
@@ -61,15 +64,16 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
           ))}
         </nav>
 
-        <button
+        <Button
+          variant="secondary"
+          className="mt-4"
           onClick={() => {
             logout();
             router.replace("/login");
           }}
-          className="mt-4 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           Log out
-        </button>
+        </Button>
       </aside>
 
       <main className="flex-1 p-6">{children}</main>
