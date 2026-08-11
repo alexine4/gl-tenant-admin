@@ -24,3 +24,64 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Dataviz reference palette (see the dataviz skill's references/palette.md).
+   Scoped to .viz-root so charts read against a validated, theme-aware token
+   set instead of ad hoc Tailwind colors. */
+.viz-root {
+  color-scheme: light;
+  --viz-surface: #fcfcfb;
+  --viz-text-primary: #0b0b0b;
+  --viz-text-secondary: #52514e;
+  --viz-muted: #898781;
+  --viz-grid: #e1e0d9;
+  --viz-baseline: #c3c2b7;
+  --viz-good: #006300;
+
+  --viz-series-1: #2a78d6; /* blue */
+  --viz-series-2: #eb6834; /* orange */
+  --viz-series-3: #1baf7a; /* aqua */
+  --viz-series-4: #eda100; /* yellow */
+
+  /* Sequential blue ramp, ordinal-safe steps (see palette.md: light stays
+     no lighter than step 250). */
+  --viz-seq-250: #86b6ef;
+  --viz-seq-350: #5598e7;
+  --viz-seq-450: #2a78d6;
+  --viz-seq-550: #1c5cab;
+  --viz-seq-650: #104281;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .viz-root {
+    color-scheme: dark;
+    --viz-surface: #1a1a19;
+    --viz-text-primary: #ffffff;
+    --viz-text-secondary: #c3c2b7;
+    --viz-muted: #898781;
+    --viz-grid: #2c2c2a;
+    --viz-baseline: #383835;
+    --viz-good: #0ca30c;
+
+    --viz-series-1: #3987e5;
+    --viz-series-2: #d95926;
+    --viz-series-3: #199e70;
+    --viz-series-4: #c98500;
+  }
+}
+
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --viz-surface: #1a1a19;
+  --viz-text-primary: #ffffff;
+  --viz-text-secondary: #c3c2b7;
+  --viz-muted: #898781;
+  --viz-grid: #2c2c2a;
+  --viz-baseline: #383835;
+  --viz-good: #0ca30c;
+
+  --viz-series-1: #3987e5;
+  --viz-series-2: #d95926;
+  --viz-series-3: #199e70;
+  --viz-series-4: #c98500;
+}

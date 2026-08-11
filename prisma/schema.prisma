@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MembershipRole {
+  TenantAdmin
+  TenantOperator
+  TenantMember
+}
+
+enum MembershipStatus {
+  Active
+  Disabled
+}
+
+enum DocumentStatus {
+  Pending
+  Ingested
+  Failed
+}
+
+// A global user identity. A user authenticates once and is then resolved
+// into whichever tenant membership their account holds (today: exactly one).
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships TenantMembership[]
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships TenantMembership[]
+  branding    TenantBranding?
+  documents   Document[]
+}
+
+// The join between a User and a Tenant: carries the role and the
+// active/disabled status that the auth rules key off of.
+model TenantMembership {
+  id        String           @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      MembershipRole
+  status    MembershipStatus @default(Active)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+}
+
+model TenantBranding {
+  id             String   @id @default(cuid())
+  tenantId       String   @unique
+  logoUrl        String?
+  logoMimeType   String?
+  logoSizeBytes  Int?
+  primaryColor   String   @default("#4F46E5")
+  secondaryColor String   @default("#111827")
+  accentColor    String   @default("#22C55E")
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id               String         @id @default(cuid())
+  tenantId         String
+  uploadedByUserId String
+  fileName         String
+  mimeType         String
+  sizeBytes        Int
+  storagePath      String
+  status           DocumentStatus @default(Pending)
+  failureReason    String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
