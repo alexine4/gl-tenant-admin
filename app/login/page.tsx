@@ -1,36 +1,31 @@
 "use client";
 
-import { useEffect, useState, type SubmitEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-client";
+import { signIn } from "next-auth/react";
 import { TextField } from "@/components/ui/TextField";
-import { Checkbox } from "@/components/ui/Checkbox";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
-  const { login, status } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Already have a session (e.g. opened /login directly while logged in) --
-  // skip the form.
-  useEffect(() => {
-    if (status === "authenticated") {
-      router.replace("/console");
-    }
-  }, [status, router]);
+  // An already-authenticated visitor opening /login directly is redirected
+  // by middleware.ts before this page ever renders.
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password, rememberMe);
+      const result = await signIn("credentials", { email, password, redirect: false });
+      if (result?.error) {
+        throw new Error("invalid credentials");
+      }
       router.replace("/console");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -72,8 +67,6 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
           />
-
-          <Checkbox label="Remember me" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
 
           {error && <Alert variant="error">{error}</Alert>}
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/lib/auth-client";
-import { DAY_NAMES, readJsonOrThrow, type AnalyticsResponse } from "@/lib/analytics-client";
+import { useMemo, useState } from "react";
+import { useAnalyticsQuery, exportAnalytics } from "@/lib/queries/analytics";
+import { DAY_NAMES } from "@/lib/analytics-client";
 import { StatTile } from "@/components/charts/StatTile";
 import { LineChart } from "@/components/charts/LineChart";
 import { HBarChart } from "@/components/charts/HBarChart";
@@ -15,6 +15,8 @@ import { TextField } from "@/components/ui/TextField";
 import { Alert } from "@/components/ui/Alert";
 import { Muted } from "@/components/ui/Muted";
 import { DataTable } from "@/components/ui/DataTable";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setAnalyticsRange } from "@/store/uiSlice";
 
 const LAYER_COLORS: Record<string, string> = {
   KnowledgeBase: "var(--viz-series-1)",
@@ -44,53 +46,29 @@ const PRESETS = [
 ];
 
 export default function AnalyticsPage() {
-  const { authFetch } = useAuth();
-  const [from, setFrom] = useState(isoDaysAgo(29));
-  const [to, setTo] = useState(isoDaysAgo(0));
-  const [data, setData] = useState<AnalyticsResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const { from, to } = useAppSelector((state) => state.ui.analyticsRange);
+  const { data, error } = useAnalyticsQuery(from, to);
   const [exporting, setExporting] = useState<"csv" | "json" | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await authFetch(`/tenant/analytics?from=${from}&to=${to}`);
-        const body = (await readJsonOrThrow(res)) as AnalyticsResponse;
-        // Refetch keeps the previous render until the new data is ready --
-        // no intermediate null flash while switching date ranges.
-        if (!cancelled) setData(body);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load analytics");
-      }
+  async function handleExport(format: "csv" | "json") {
+    setExporting(format);
+    setExportError(null);
+    try {
+      const blob = await exportAnalytics(from, to, format);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `analytics-${from}_to_${to}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(null);
     }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [authFetch, from, to]);
-
-  const handleExport = useCallback(
-    async (format: "csv" | "json") => {
-      setExporting(format);
-      try {
-        const res = await authFetch(`/tenant/analytics/export?from=${from}&to=${to}&format=${format}`);
-        if (!res.ok) throw new Error("Export failed");
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `analytics-${from}_to_${to}.${format}`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Export failed");
-      } finally {
-        setExporting(null);
-      }
-    },
-    [authFetch, from, to]
-  );
+  }
 
   const dowData = useMemo(
     () => data?.day_of_week.map((d) => ({ label: DAY_NAMES[d.day], value: d.count })) ?? [],
@@ -109,18 +87,27 @@ export default function AnalyticsPage() {
             key={p.label}
             variant="secondary"
             size="sm"
-            onClick={() => {
-              setFrom(p.from());
-              setTo(p.to());
-            }}
+            onClick={() => dispatch(setAnalyticsRange({ from: p.from(), to: p.to() }))}
           >
             {p.label}
           </Button>
         ))}
         <span className="mx-1 h-4 w-px bg-black/10 dark:bg-white/10" />
-        <TextField type="date" size="sm" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
+        <TextField
+          type="date"
+          size="sm"
+          value={from}
+          max={to}
+          onChange={(e) => dispatch(setAnalyticsRange({ from: e.target.value, to }))}
+        />
         <span className="text-xs text-zinc-500">to</span>
-        <TextField type="date" size="sm" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
+        <TextField
+          type="date"
+          size="sm"
+          value={to}
+          min={from}
+          onChange={(e) => dispatch(setAnalyticsRange({ from, to: e.target.value }))}
+        />
 
         <span className="ml-auto flex gap-2">
           <Button size="sm" onClick={() => handleExport("csv")} disabled={exporting !== null}>
@@ -132,9 +119,9 @@ export default function AnalyticsPage() {
         </span>
       </div>
 
-      {error && (
+      {(error || exportError) && (
         <div className="mt-4">
-          <Alert variant="error">{error}</Alert>
+          <Alert variant="error">{exportError ?? (error instanceof Error ? error.message : "Failed to load analytics")}</Alert>
         </div>
       )}
 

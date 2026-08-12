@@ -18,15 +18,6 @@ export interface UploadResult {
   document?: TenantDocument;
 }
 
-export async function readJsonOrThrow(res: Response) {
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message = typeof body?.error === "string" ? body.error : "Request failed";
-    throw new Error(message);
-  }
-  return body;
-}
-
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

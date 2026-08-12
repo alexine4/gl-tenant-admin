@@ -1,9 +1,8 @@
-"use client";
+import { auth } from "@/auth";
 
-import { useAuth } from "@/lib/auth-client";
-
-export default function UsersSectionLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+export default async function UsersSectionLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+  const user = session?.user;
   if (!user) return null;
 
   if (user.role !== "TenantAdmin") {

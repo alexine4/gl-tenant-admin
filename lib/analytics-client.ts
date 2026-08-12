@@ -22,13 +22,4 @@ export interface AnalyticsResponse {
   };
 }
 
-export async function readJsonOrThrow(res: Response) {
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message = typeof body?.error === "string" ? body.error : "Request failed";
-    throw new Error(message);
-  }
-  return body;
-}
-
 export const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

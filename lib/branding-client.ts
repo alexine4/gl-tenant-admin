@@ -7,12 +7,3 @@ export interface TenantBranding {
   accent_color: string;
   updated_at: string;
 }
-
-export async function readJsonOrThrow(res: Response) {
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message = typeof body?.error === "string" ? body.error : "Request failed";
-    throw new Error(message);
-  }
-  return body;
-}

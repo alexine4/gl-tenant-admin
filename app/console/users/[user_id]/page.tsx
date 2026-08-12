@@ -1,15 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { use, useEffect, useState, type SubmitEvent } from "react";
-import { useAuth } from "@/lib/auth-client";
-import { readJsonOrThrow, type ManagedRole, type TenantUser } from "@/lib/tenant-users-client";
+import { use, useState, type SubmitEvent } from "react";
+import {
+  useChangePasswordMutation,
+  useToggleUserStatusMutation,
+  useUpdateUserMutation,
+  useUserQuery,
+} from "@/lib/queries/users";
+import type { ManagedRole } from "@/lib/tenant-users-client";
 import { TextField } from "@/components/ui/TextField";
 import { SelectField } from "@/components/ui/SelectField";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Muted } from "@/components/ui/Muted";
+import { useAppDispatch } from "@/store/hooks";
+import { pushToast } from "@/store/uiSlice";
 
 const ROLE_OPTIONS = [
   { value: "TenantOperator", label: "TenantOperator" },
@@ -18,111 +25,52 @@ const ROLE_OPTIONS = [
 
 export default function UserDetailPage({ params }: { params: Promise<{ user_id: string }> }) {
   const { user_id } = use(params);
-  const { authFetch } = useAuth();
+  const dispatch = useAppDispatch();
   const router = useRouter();
 
-  const [tenantUser, setTenantUser] = useState<TenantUser | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { data: tenantUser, error: loadError } = useUserQuery(user_id);
+  const updateUser = useUpdateUserMutation(user_id);
+  const changePassword = useChangePasswordMutation(user_id);
+  const toggleStatus = useToggleUserStatusMutation(user_id);
 
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<ManagedRole>("TenantMember");
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileSaved, setProfileSaved] = useState(false);
-
   const [newPassword, setNewPassword] = useState("");
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordChanged, setPasswordChanged] = useState(false);
 
-  const [togglingStatus, setTogglingStatus] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await authFetch(`/tenant/users/${user_id}`);
-        const data = (await readJsonOrThrow(res)) as TenantUser;
-        if (cancelled) return;
-        setTenantUser(data);
-        setEmail(data.email);
-        setDisplayName(data.display_name);
-        setRole(data.role);
-      } catch (err) {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : "Failed to load user");
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [authFetch, user_id]);
-
-  async function handleProfileSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setProfileError(null);
-    setProfileSaved(false);
-    setSavingProfile(true);
-    try {
-      const res = await authFetch(`/tenant/users/${user_id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, display_name: displayName, role }),
-      });
-      const updated = (await readJsonOrThrow(res)) as TenantUser;
-      setTenantUser(updated);
-      setProfileSaved(true);
-    } catch (err) {
-      setProfileError(err instanceof Error ? err.message : "Failed to save changes");
-    } finally {
-      setSavingProfile(false);
-    }
+  // Reset the profile form whenever a new `tenantUser` object arrives
+  // (initial load, or after a save) -- adjusting state during render instead
+  // of in an effect avoids an extra cascading render.
+  const [profileSyncedWith, setProfileSyncedWith] = useState<typeof tenantUser>(undefined);
+  if (tenantUser && tenantUser !== profileSyncedWith) {
+    setProfileSyncedWith(tenantUser);
+    setEmail(tenantUser.email);
+    setDisplayName(tenantUser.display_name);
+    setRole(tenantUser.role);
   }
 
-  async function handlePasswordSubmit(event: SubmitEvent<HTMLFormElement>) {
+  function handleProfileSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    setPasswordError(null);
-    setPasswordChanged(false);
-    setChangingPassword(true);
-    try {
-      const res = await authFetch(`/tenant/users/${user_id}/change-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ new_password: newPassword }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(typeof body.error === "string" ? body.error : "Failed to change password");
-      }
-      setNewPassword("");
-      setPasswordChanged(true);
-    } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : "Failed to change password");
-    } finally {
-      setChangingPassword(false);
-    }
+    updateUser.mutate({ email, display_name: displayName, role });
   }
 
-  async function handleToggleStatus() {
+  function handlePasswordSubmit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    changePassword.mutate(newPassword, {
+      onSuccess: () => setNewPassword(""),
+    });
+  }
+
+  function handleToggleStatus() {
     if (!tenantUser) return;
-    setStatusError(null);
-    setTogglingStatus(true);
     const action = tenantUser.status === "Active" ? "deactivate" : "reactivate";
-    try {
-      const res = await authFetch(`/tenant/users/${user_id}/${action}`, { method: "POST" });
-      const updated = (await readJsonOrThrow(res)) as TenantUser;
-      setTenantUser(updated);
-    } catch (err) {
-      setStatusError(err instanceof Error ? err.message : "Failed to update status");
-    } finally {
-      setTogglingStatus(false);
-    }
+    toggleStatus.mutate(action, {
+      onSuccess: () => dispatch(pushToast({ tone: "success", message: `User ${action}d.` })),
+    });
   }
 
   if (loadError) {
-    return <Alert variant="error">{loadError}</Alert>;
+    return <Alert variant="error">{loadError instanceof Error ? loadError.message : "Failed to load user"}</Alert>;
   }
 
   if (!tenantUser) {
@@ -158,11 +106,15 @@ export default function UserDetailPage({ params }: { params: Promise<{ user_id: 
           onChange={(e) => setRole(e.target.value as ManagedRole)}
         />
 
-        {profileError && <Alert variant="error">{profileError}</Alert>}
-        {profileSaved && <Alert variant="success">Saved.</Alert>}
+        {updateUser.isError && (
+          <Alert variant="error">
+            {updateUser.error instanceof Error ? updateUser.error.message : "Failed to save changes"}
+          </Alert>
+        )}
+        {updateUser.isSuccess && <Alert variant="success">Saved.</Alert>}
 
-        <Button type="submit" disabled={savingProfile} className="self-start">
-          {savingProfile ? "Saving…" : "Save changes"}
+        <Button type="submit" disabled={updateUser.isPending} className="self-start">
+          {updateUser.isPending ? "Saving…" : "Save changes"}
         </Button>
       </form>
 
@@ -178,10 +130,14 @@ export default function UserDetailPage({ params }: { params: Promise<{ user_id: 
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
         />
-        {passwordError && <Alert variant="error">{passwordError}</Alert>}
-        {passwordChanged && <Alert variant="success">Password updated.</Alert>}
-        <Button type="submit" variant="secondary" disabled={changingPassword} className="self-start">
-          {changingPassword ? "Updating…" : "Update password"}
+        {changePassword.isError && (
+          <Alert variant="error">
+            {changePassword.error instanceof Error ? changePassword.error.message : "Failed to change password"}
+          </Alert>
+        )}
+        {changePassword.isSuccess && <Alert variant="success">Password updated.</Alert>}
+        <Button type="submit" variant="secondary" disabled={changePassword.isPending} className="self-start">
+          {changePassword.isPending ? "Updating…" : "Update password"}
         </Button>
       </form>
 
@@ -194,18 +150,20 @@ export default function UserDetailPage({ params }: { params: Promise<{ user_id: 
         <Muted className="mt-1">
           There is no delete -- deactivating keeps the account and its history intact while blocking login.
         </Muted>
-        {statusError && (
+        {toggleStatus.isError && (
           <div className="mt-2">
-            <Alert variant="error">{statusError}</Alert>
+            <Alert variant="error">
+              {toggleStatus.error instanceof Error ? toggleStatus.error.message : "Failed to update status"}
+            </Alert>
           </div>
         )}
         <Button
           variant={tenantUser.status === "Active" ? "danger" : "success"}
-          disabled={togglingStatus}
+          disabled={toggleStatus.isPending}
           className="mt-3"
           onClick={handleToggleStatus}
         >
-          {togglingStatus ? "Updating…" : tenantUser.status === "Active" ? "Deactivate" : "Reactivate"}
+          {toggleStatus.isPending ? "Updating…" : tenantUser.status === "Active" ? "Deactivate" : "Reactivate"}
         </Button>
       </div>
     </div>

@@ -1,9 +1,8 @@
-"use client";
+import { auth } from "@/auth";
 
-import { useAuth } from "@/lib/auth-client";
-
-export default function ConsoleOverviewPage() {
-  const { user } = useAuth();
+export default async function ConsoleOverviewPage() {
+  const session = await auth();
+  const user = session?.user;
   if (!user) return null;
 
   return (

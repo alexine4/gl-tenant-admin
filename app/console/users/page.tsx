@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth-client";
-import { readJsonOrThrow, type TenantUser } from "@/lib/tenant-users-client";
+import { useUsersQuery } from "@/lib/queries/users";
 import { buttonClasses } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Muted } from "@/components/ui/Muted";
@@ -11,26 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 
 export default function UsersDirectoryPage() {
-  const { authFetch } = useAuth();
-  const [users, setUsers] = useState<TenantUser[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await authFetch("/tenant/users");
-        const data = (await readJsonOrThrow(res)) as TenantUser[];
-        if (!cancelled) setUsers(data);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load users");
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [authFetch]);
+  const { data: users, error } = useUsersQuery();
 
   return (
     <div className="max-w-3xl">
@@ -43,7 +22,7 @@ export default function UsersDirectoryPage() {
 
       {error && (
         <div className="mt-4">
-          <Alert variant="error">{error}</Alert>
+          <Alert variant="error">{error instanceof Error ? error.message : "Failed to load users"}</Alert>
         </div>
       )}
 

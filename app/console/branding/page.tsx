@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { useAuth } from "@/lib/auth-client";
-import { readJsonOrThrow, type TenantBranding } from "@/lib/branding-client";
+import { useBrandingQuery, useSaveBrandingMutation, useUploadLogoMutation } from "@/lib/queries/branding";
 import { FileField } from "@/components/ui/FileField";
 import { ColorSwatchField } from "@/components/ui/ColorSwatchField";
 import { Alert } from "@/components/ui/Alert";
 import { Muted } from "@/components/ui/Muted";
 import { Button } from "@/components/ui/Button";
+import { useAppDispatch } from "@/store/hooks";
+import { pushToast } from "@/store/uiSlice";
 
 const COLOR_FIELDS = [
   { key: "primary_color", label: "Primary" },
@@ -16,42 +17,27 @@ const COLOR_FIELDS = [
 ] as const;
 
 export default function BrandingPage() {
-  const { authFetch } = useAuth();
-  const [branding, setBranding] = useState<TenantBranding | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const { data: branding, error: loadError } = useBrandingQuery();
+  const saveBranding = useSaveBrandingMutation();
+  const uploadLogo = useUploadLogoMutation();
 
   const [colors, setColors] = useState({ primary_color: "", secondary_color: "", accent_color: "" });
-  const [savingColors, setSavingColors] = useState(false);
-  const [colorsSaved, setColorsSaved] = useState(false);
-  const [colorsError, setColorsError] = useState<string | null>(null);
-
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await authFetch("/tenant/branding");
-        const data = (await readJsonOrThrow(res)) as TenantBranding;
-        if (cancelled) return;
-        setBranding(data);
-        setColors({
-          primary_color: data.primary_color,
-          secondary_color: data.secondary_color,
-          accent_color: data.accent_color,
-        });
-      } catch (err) {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : "Failed to load branding");
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [authFetch]);
+  // Reset the colour form whenever a new `branding` object arrives (initial
+  // load, or after a save/upload) -- adjusting state during render instead of
+  // in an effect avoids an extra cascading render.
+  const [colorsSyncedWith, setColorsSyncedWith] = useState<typeof branding>(undefined);
+  if (branding && branding !== colorsSyncedWith) {
+    setColorsSyncedWith(branding);
+    setColors({
+      primary_color: branding.primary_color,
+      secondary_color: branding.secondary_color,
+      accent_color: branding.accent_color,
+    });
+  }
 
   // Revoke the local object URL whenever it's replaced or the page unmounts,
   // otherwise each selected file leaks a blob URL for the tab's lifetime.
@@ -61,49 +47,33 @@ export default function BrandingPage() {
     };
   }, [previewUrl]);
 
-  async function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
+  function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setUploadError(null);
     setPreviewUrl(URL.createObjectURL(file));
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("logo", file);
-      const res = await authFetch("/tenant/branding/logo", { method: "POST", body: formData });
-      const updated = (await readJsonOrThrow(res)) as TenantBranding;
-      setBranding(updated);
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Failed to upload logo");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+    uploadLogo.mutate(file, {
+      onSuccess: () => dispatch(pushToast({ tone: "success", message: "Logo updated." })),
+      onError: (err) =>
+        dispatch(pushToast({ tone: "error", message: err instanceof Error ? err.message : "Failed to upload logo" })),
+      onSettled: () => {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      },
+    });
   }
 
-  async function handleSaveColors() {
-    setColorsError(null);
-    setColorsSaved(false);
-    setSavingColors(true);
-    try {
-      const res = await authFetch("/tenant/branding", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(colors),
-      });
-      const updated = (await readJsonOrThrow(res)) as TenantBranding;
-      setBranding(updated);
-      setColorsSaved(true);
-    } catch (err) {
-      setColorsError(err instanceof Error ? err.message : "Failed to save colour scheme");
-    } finally {
-      setSavingColors(false);
-    }
+  function handleSaveColors() {
+    saveBranding.mutate(colors, {
+      onSuccess: () => dispatch(pushToast({ tone: "success", message: "Colour scheme saved." })),
+      onError: (err) =>
+        dispatch(
+          pushToast({ tone: "error", message: err instanceof Error ? err.message : "Failed to save colour scheme" })
+        ),
+    });
   }
 
   if (loadError) {
-    return <Alert variant="error">{loadError}</Alert>;
+    return <Alert variant="error">{loadError instanceof Error ? loadError.message : "Failed to load branding"}</Alert>;
   }
 
   if (!branding) {
@@ -135,20 +105,20 @@ export default function BrandingPage() {
               ref={fileInputRef}
               accept="image/png,image/jpeg,image/webp,image/gif"
               onChange={handleFileSelected}
-              disabled={uploading}
+              disabled={uploadLogo.isPending}
             />
             <Muted size="xs" className="mt-1">
               PNG, JPEG, WebP or GIF, up to 2 MB.
             </Muted>
-            {uploading && (
+            {uploadLogo.isPending && (
               <Muted size="xs" className="mt-1">
                 Uploading…
               </Muted>
             )}
-            {uploadError && (
+            {uploadLogo.isError && (
               <div className="mt-1">
                 <Alert variant="error" size="sm">
-                  {uploadError}
+                  {uploadLogo.error instanceof Error ? uploadLogo.error.message : "Failed to upload logo"}
                 </Alert>
               </div>
             )}
@@ -189,19 +159,21 @@ export default function BrandingPage() {
           </span>
         </div>
 
-        {colorsError && (
+        {saveBranding.isError && (
           <div className="mt-3">
-            <Alert variant="error">{colorsError}</Alert>
+            <Alert variant="error">
+              {saveBranding.error instanceof Error ? saveBranding.error.message : "Failed to save colour scheme"}
+            </Alert>
           </div>
         )}
-        {colorsSaved && (
+        {saveBranding.isSuccess && (
           <div className="mt-3">
             <Alert variant="success">Saved.</Alert>
           </div>
         )}
 
-        <Button onClick={handleSaveColors} disabled={savingColors} className="mt-4">
-          {savingColors ? "Saving…" : "Save colour scheme"}
+        <Button onClick={handleSaveColors} disabled={saveBranding.isPending} className="mt-4">
+          {saveBranding.isPending ? "Saving…" : "Save colour scheme"}
         </Button>
       </section>
     </div>

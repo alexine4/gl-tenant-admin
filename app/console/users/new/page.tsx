@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type SubmitEvent } from "react";
-import { useAuth } from "@/lib/auth-client";
-import { readJsonOrThrow, type ManagedRole } from "@/lib/tenant-users-client";
+import { useCreateUserMutation } from "@/lib/queries/users";
+import type { ManagedRole } from "@/lib/tenant-users-client";
 import { TextField } from "@/components/ui/TextField";
 import { SelectField } from "@/components/ui/SelectField";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { useAppDispatch } from "@/store/hooks";
+import { pushToast } from "@/store/uiSlice";
 
 const ROLE_OPTIONS = [
   { value: "TenantOperator", label: "TenantOperator" },
@@ -15,32 +17,25 @@ const ROLE_OPTIONS = [
 ];
 
 export default function NewUserPage() {
-  const { authFetch } = useAuth();
+  const dispatch = useAppDispatch();
   const router = useRouter();
+  const createUser = useCreateUserMutation();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<ManagedRole>("TenantMember");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
-    setSubmitting(true);
-    try {
-      const res = await authFetch("/tenant/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, display_name: displayName, role, password }),
-      });
-      await readJsonOrThrow(res);
-      router.push("/console/users");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create user");
-    } finally {
-      setSubmitting(false);
-    }
+    createUser.mutate(
+      { email, display_name: displayName, role, password },
+      {
+        onSuccess: () => {
+          dispatch(pushToast({ tone: "success", message: "User created." }));
+          router.push("/console/users");
+        },
+      }
+    );
   }
 
   return (
@@ -73,11 +68,15 @@ export default function NewUserPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {error && <Alert variant="error">{error}</Alert>}
+        {createUser.isError && (
+          <Alert variant="error">
+            {createUser.error instanceof Error ? createUser.error.message : "Failed to create user"}
+          </Alert>
+        )}
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Creating…" : "Create user"}
+          <Button type="submit" disabled={createUser.isPending}>
+            {createUser.isPending ? "Creating…" : "Create user"}
           </Button>
           <Button type="button" variant="secondary" onClick={() => router.push("/console/users")}>
             Cancel
