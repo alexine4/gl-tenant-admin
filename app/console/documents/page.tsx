@@ -62,7 +62,7 @@ export default function DocumentsPage() {
         {uploadDocuments.data && (
           <ul className="mt-2 flex flex-col gap-1 text-sm">
             {uploadDocuments.data.map((r, i) => (
-              <li key={i} className={r.accepted ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
+              <li key={i} className={r.accepted ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
                 {r.accepted ? "Queued" : "Rejected"}: {r.file_name}
                 {!r.accepted && r.error ? ` — ${r.error}` : ""}
               </li>

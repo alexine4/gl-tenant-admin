@@ -17,7 +17,7 @@ export function ColorSwatchField({
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-9 cursor-pointer rounded border border-zinc-300 dark:border-zinc-700 bg-transparent p-0"
+          className="h-9 w-9 cursor-pointer rounded border border-zinc-500 bg-transparent p-0"
         />
         <input
           type="text"

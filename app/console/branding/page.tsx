@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useBrandingQuery, useSaveBrandingMutation, useUploadLogoMutation } from "@/lib/queries/branding";
+import { pickReadableTextColor } from "@/lib/contrast-color";
 import { FileField } from "@/components/ui/FileField";
 import { ColorSwatchField } from "@/components/ui/ColorSwatchField";
 import { Alert } from "@/components/ui/Alert";
@@ -97,7 +98,7 @@ export default function BrandingPage() {
               // eslint-disable-next-line @next/next/no-img-element -- tenant-uploaded, not a build-time-known asset
               <img src={displayedLogo} alt="Tenant logo" className="h-full w-full object-contain" />
             ) : (
-              <span className="text-xs text-zinc-400">No logo</span>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">No logo</span>
             )}
           </div>
           <div>
@@ -146,14 +147,14 @@ export default function BrandingPage() {
           style={{ background: colors.secondary_color }}
         >
           <span
-            className="rounded-full px-3 py-1.5 text-sm font-medium text-white"
-            style={{ backgroundColor: colors.primary_color }}
+            className="rounded-full px-3 py-1.5 text-sm font-medium"
+            style={{ backgroundColor: colors.primary_color, color: pickReadableTextColor(colors.primary_color) }}
           >
             Primary action
           </span>
           <span
-            className="rounded-full px-3 py-1.5 text-sm font-medium text-white"
-            style={{ backgroundColor: colors.accent_color }}
+            className="rounded-full px-3 py-1.5 text-sm font-medium"
+            style={{ backgroundColor: colors.accent_color, color: pickReadableTextColor(colors.accent_color) }}
           >
             Accent
           </span>

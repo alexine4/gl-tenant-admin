@@ -8,7 +8,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   secondary:
     "border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
   danger: "bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-600",
-  success: "bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-700 dark:hover:bg-emerald-600",
+  success: "bg-emerald-700 dark:bg-emerald-800 text-white hover:bg-emerald-800 dark:hover:bg-emerald-700",
   link: "text-zinc-500 dark:text-zinc-400 hover:underline",
 };
 

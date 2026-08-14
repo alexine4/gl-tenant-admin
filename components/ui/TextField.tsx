@@ -8,7 +8,7 @@ const SIZE_CLASSES: Record<FieldSize, string> = {
 };
 
 export function textFieldClasses(size: FieldSize = "md"): string {
-  return `${SIZE_CLASSES[size]} border border-zinc-300 dark:border-zinc-700 bg-transparent outline-none focus:border-zinc-500`;
+  return `${SIZE_CLASSES[size]} border border-zinc-500 bg-transparent outline-none focus:border-zinc-900 dark:focus:border-zinc-50`;
 }
 
 export const fieldLabelClasses = "flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300";

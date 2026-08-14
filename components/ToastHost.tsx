@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { dismissToast } from "@/store/uiSlice";
 
 const TONE_CLASSES: Record<"success" | "error", string> = {
-  success: "bg-emerald-600 text-white",
+  success: "bg-emerald-700 text-white",
   error: "bg-red-600 text-white",
 };
 

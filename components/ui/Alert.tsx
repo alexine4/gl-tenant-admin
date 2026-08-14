@@ -17,7 +17,7 @@ export function Alert({
   children: ReactNode;
 }) {
   if (variant === "success") {
-    return <p className="text-sm text-emerald-600 dark:text-emerald-400">{children}</p>;
+    return <p className="text-sm text-emerald-700 dark:text-emerald-400">{children}</p>;
   }
   return (
     <p className={`${ERROR_SIZE_CLASSES[size]} bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300`}>

@@ -100,7 +100,7 @@ export default function AnalyticsPage() {
           max={to}
           onChange={(e) => dispatch(setAnalyticsRange({ from: e.target.value, to }))}
         />
-        <span className="text-xs text-zinc-500">to</span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">to</span>
         <TextField
           type="date"
           size="sm"
