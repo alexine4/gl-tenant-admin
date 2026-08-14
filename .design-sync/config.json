@@ -1,0 +1,18 @@
+{
+  "projectId": "e32a7ec1-438c-4037-bbcb-400975e2630e",
+  "shape": "package",
+  "pkg": "gl-tenant-admin",
+  "globalName": "TenantConsoleUI",
+  "entry": "./dist/index.js",
+  "srcDir": "components",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": ".next/static/chunks/40fxekphjy7ho.css",
+  "buildCmd": "npm run build",
+  "readmeHeader": ".design-sync/conventions.md",
+  "componentSrcMap": {
+    "ToastHost": null
+  },
+  "overrides": {
+    "DataTable": { "cardMode": "column" }
+  }
+}
