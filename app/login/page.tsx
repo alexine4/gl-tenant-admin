@@ -6,11 +6,12 @@ import { signIn } from "next-auth/react";
 import { TextField } from "@/components/ui/TextField";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import useInputValue from "@hooks/input-value";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const email = useInputValue();
+  const password = useInputValue();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const result = await signIn("credentials", { email, password, redirect: false });
+      const result = await signIn("credentials", { email: email.value, password: password.value, redirect: false });
       if (result?.error) {
         throw new Error("invalid credentials");
       }
@@ -53,8 +54,7 @@ export default function LoginPage() {
             type="email"
             required
             autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+           {...email}
             placeholder="you@company.com"
           />
 
@@ -63,8 +63,7 @@ export default function LoginPage() {
             type="password"
             required
             autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+           {...password}
             placeholder="••••••••"
           />
 
