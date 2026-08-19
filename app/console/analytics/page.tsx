@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAnalyticsQuery, exportAnalytics } from "@/lib/queries/analytics";
+import { useAnalyticsQuery, exportAnalytics } from "@/lib/hooks/analytics";
 import { DAY_NAMES } from "@/lib/analytics-client";
 import { StatTile } from "@/components/charts/StatTile";
 import { LineChart } from "@/components/charts/LineChart";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { useBrandingQuery, useSaveBrandingMutation, useUploadLogoMutation } from "@/lib/queries/branding";
+import { useBrandingQuery, useSaveBrandingMutation, useUploadLogoMutation } from "@/lib/hooks/branding";
 import { pickReadableTextColor } from "@/lib/contrast-color";
 import { FileField } from "@/components/ui/FileField";
 import { ColorSwatchField } from "@/components/ui/ColorSwatchField";

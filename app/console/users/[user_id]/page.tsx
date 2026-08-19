@@ -7,7 +7,7 @@ import {
   useToggleUserStatusMutation,
   useUpdateUserMutation,
   useUserQuery,
-} from "@/lib/queries/users";
+} from "@/lib/hooks/users";
 import type { ManagedRole } from "@/lib/tenant-users-client";
 import { TextField } from "@/components/ui/TextField";
 import { SelectField } from "@/components/ui/SelectField";

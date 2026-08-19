@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type ChangeEvent } from "react";
-import { useDocumentsQuery, useUploadDocumentsMutation } from "@/lib/queries/documents";
+import { useDocumentsQuery, useUploadDocumentsMutation } from "@/lib/hooks/documents";
 import { formatBytes, type TenantDocument } from "@/lib/documents-client";
 import { FileField } from "@/components/ui/FileField";
 import { Alert } from "@/components/ui/Alert";

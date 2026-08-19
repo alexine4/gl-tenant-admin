@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useUsersQuery } from "@/lib/queries/users";
+import { useUsersQuery } from "@/lib/hooks/users";
 import { buttonClasses } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { Muted } from "@/components/ui/Muted";
